@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SECOP Analyzer</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f5f7fb;
+        color: #1d1d1f;
+        margin: 0;
+        padding: 32px;
+      }
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      .card {
+        background: white;
+        padding: 28px;
+        border-radius: 14px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+      }
+      h1 {
+        margin-top: 0;
+      }
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin: 20px 0;
+      }
+      input[type="file"] {
+        padding: 10px;
+        border: 1px solid #d7dce5;
+        border-radius: 8px;
+        background: #fff;
+      }
+      button {
+        background: #1f6feb;
+        color: white;
+        border: none;
+        padding: 12px 18px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button:hover {
+        background: #185bcc;
+      }
+      #status {
+        margin-top: 16px;
+        padding: 12px 14px;
+        border-radius: 8px;
+        background: #eef5ff;
+        color: #224a8d;
+        display: none;
+      }
+      .exception-input {
+        width: 100%;
+        min-height: 110px;
+        box-sizing: border-box;
+        margin-top: 8px;
+        padding: 10px;
+        border: 1px solid #d7dce5;
+        border-radius: 8px;
+        resize: vertical;
+        font: inherit;
+      }
+      .viability {
+        margin-top: 16px;
+        padding: 14px;
+        border-radius: 10px;
+        background: #f7f8fa;
+        border: 1px solid #e1e5eb;
+      }
+      .viability.not-viable {
+        background: #fff0f0;
+        border-color: #f3c5c5;
+        color: #8a1c1c;
+      }
+      .viability.viable {
+        background: #eef9f1;
+        border-color: #c6e8ce;
+        color: #176b35;
+      }
+      .results {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-top: 24px;
+      }
+      .box {
+        border: 1px solid #e5eaf2;
+        border-radius: 12px;
+        padding: 16px;
+        background: #fafcff;
+      }
+      .summary {
+        margin-top: 16px;
+        background: #f3f7ff;
+        border: 1px solid #dfe9ff;
+        border-radius: 10px;
+        padding: 12px 14px;
+        color: #23407d;
+        font-size: 14px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+      th, td {
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 1px solid #eaeef5;
+        vertical-align: top;
+      }
+      th {
+        background: #eef3ff;
+      }
+      .badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        background: #e8f7ed;
+        color: #1f7a43;
+      }
+      .error {
+        background: #fff0f0;
+        color: #9b1c1c;
+      }
+      .download-link {
+        display: inline-block;
+        margin-top: 16px;
+        background: #1d7f4f;
+        color: white;
+        padding: 10px 14px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      @media (max-width: 800px) {
+        .results {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <h1>SECOP Analyzer</h1>
+        <p>Sube un PDF del proceso de contratación para extraer documentos, requisitos e ítems.</p>
+
+        <div class="controls">
+          <input id="pdfInput" type="file" accept="application/pdf" />
+          <button id="analyzeBtn">Analizar PDF</button>
+        </div>
+
+        <label for="exceptionsInput"><strong>Lista de excepciones o criterios de comprobación</strong></label>
+        <textarea id="exceptionsInput" class="exception-input" placeholder="Una excepción por línea. Ejemplo:\nEl trabajo requiere taller físico\nDebe incluir experiencia específica de 3 años\nDebe entregar garantía de calidad"></textarea>
+
+        <div id="status">Procesando...</div>
+        <div id="summaryBox" class="summary" style="display:none;"></div>
+        <div id="viabilityBox" class="viability" style="display:none;"></div>
+        <a id="downloadWord" class="download-link" style="display:none;">Descargar Word</a>
+
+        <div class="results">
+          <div class="box">
+            <h3>Documentos y requisitos</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Documento</th>
+                  <th>Acción</th>
+                  <th>Página</th>
+                  <th>Obligatorio</th>
+                </tr>
+              </thead>
+              <tbody id="documentsTable"></tbody>
+            </table>
+          </div>
+
+          <div class="box">
+            <h3>Ítems</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Ítem</th>
+                  <th>Descripción</th>
+                  <th>Unidad</th>
+                  <th>Cantidad</th>
+                  <th>Valor unitario</th>
+                  <th>Página</th>
+                </tr>
+              </thead>
+              <tbody id="itemsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const pdfInput = document.getElementById('pdfInput');
+      const analyzeBtn = document.getElementById('analyzeBtn');
+      const statusBox = document.getElementById('status');
+      const exceptionsInput = document.getElementById('exceptionsInput');
+      const documentsTable = document.getElementById('documentsTable');
+      const itemsTable = document.getElementById('itemsTable');
+      const downloadWord = document.getElementById('downloadWord');
+      const viabilityBox = document.getElementById('viabilityBox');
+
+      analyzeBtn.addEventListener('click', async () => {
+        const file = pdfInput.files[0];
+        if (!file) {
+          statusBox.style.display = 'block';
+          statusBox.classList.add('error');
+          statusBox.textContent = 'Selecciona un archivo PDF antes de continuar.';
+          return;
+        }
+
+        statusBox.style.display = 'block';
+        statusBox.classList.remove('error');
+        statusBox.textContent = 'Analizando PDF...';
+          summaryBox.style.display = 'none';
+          viabilityBox.style.display = 'none';
+        downloadWord.style.display = 'none';
+
+        const formData = new FormData();
+        formData.append('file', file);
+          formData.append('excepciones', exceptionsInput.value);
+
+        try {
+          const response = await fetch('/api/analyze', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.error || 'Error desconocido');
+          }
+
+          documentsTable.innerHTML = '';
+          itemsTable.innerHTML = '';
+
+          (result.documentos || []).forEach(doc => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${doc.nombre || 'No encontrado'}</td>
+              <td>${doc.accion || 'INFORMACIÓN'}</td>
+              <td>${doc.pagina ?? 'N/A'}</td>
+              <td><span class="badge">${doc.obligatorio ? 'Sí' : 'No'}</span></td>
+            `;
+            documentsTable.appendChild(row);
+          });
+
+          (result.items || []).forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${item.item ?? 'N/A'}</td>
+              <td>${item.descripcion || 'No encontrado'}</td>
+              <td>${item.unidad || 'No encontrado'}</td>
+              <td>${item.cantidad ?? 'N/A'}</td>
+              <td>${item.valor_unitario ?? item.precio_referencia ?? 'N/A'}</td>
+              <td>${item.pagina ?? 'N/A'}</td>
+            `;
+            itemsTable.appendChild(row);
+          });
+
+          if (result.word_file) {
+            downloadWord.href = `/download?file=${encodeURIComponent(result.word_file)}`;
+            downloadWord.style.display = 'inline-block';
+            downloadWord.textContent = 'Descargar Word';
+          }
+
+          const itemStart = result.item_start_page ?? 'N/A';
+          const worksite = result.lugar_principal_ejecucion || 'Taller físico o sitio de trabajo';
+          summaryBox.innerHTML = `Página de inicio de ítems: <strong>${itemStart}</strong> · Lugar principal del trabajo: <strong>${worksite}</strong>`;
+          summaryBox.style.display = 'block';
+
+          const exceptionResult = result.excepciones || {};
+          const percentage = exceptionResult.porcentaje_cumplimiento ?? 100;
+          const viable = exceptionResult.viable !== false;
+          const reasons = exceptionResult.razones_no_viable || [];
+          viabilityBox.className = `viability ${viable ? 'viable' : 'not-viable'}`;
+          viabilityBox.innerHTML = `<strong>${viable ? 'VIABLE' : 'NO VIABLE'}</strong> · Cumplimiento de excepciones: <strong>${percentage}%</strong> (mínimo 50%)`;
+          if (reasons.length) {
+            viabilityBox.innerHTML += `<br><strong>Razones:</strong><br>${reasons.map(reason => `• ${reason}`).join('<br>')}`;
+          }
+          viabilityBox.style.display = 'block';
+
+          statusBox.textContent = `Análisis completado. Total de páginas: ${result.total_paginas ?? 'N/A'}`;
+        } catch (error) {
+          statusBox.classList.add('error');
+          statusBox.textContent = error.message;
+        }
+      });
+    </script>
+  </body>
+</html>
